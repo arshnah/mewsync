@@ -244,7 +244,7 @@ func TestFetchLyricsUsesFallbackChain(t *testing.T) {
 
 	dir := t.TempDir()
 	sched := rt.NewSched(1)
-	settings := NewSettingsBox(sched, Settings{})
+	settings := NewSettingsBox(newRtRuntime(sched), Settings{})
 	conn := NewRealConnector(settings, dir)
 
 	lines := conn.FetchLyrics("song", "artist")

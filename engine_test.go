@@ -7,15 +7,16 @@ import (
 )
 
 func newTestEngine(s *rt.Sched, conn Connector) (*Engine, *Shared, *SettingsBox) {
-	settings := NewSettingsBox(s, Settings{
+	er := newRtRuntime(s)
+	settings := NewSettingsBox(er, Settings{
 		Token:            "discord-token",
 		Source:           SourceSpotify,
 		EnableAutoOffset: false,
 		SendTimeOffsetMs: 200,
 		AutoClear:        true,
 	})
-	shared := NewShared(s)
-	e := NewEngine(s, settings, shared, conn, 64)
+	shared := NewShared(er)
+	e := NewEngine(er, settings, shared, conn, 64)
 	return e, shared, settings
 }
 

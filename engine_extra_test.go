@@ -12,7 +12,7 @@ func TestDeadlockSweepCatchesLockOrderViolation(t *testing.T) {
 	found := false
 	for seed := int64(1); seed <= 200 && !found; seed++ {
 		s := rt.NewSched(seed)
-		shared := NewShared(s)
+		shared := NewShared(newRtRuntime(s))
 
 		s.GoNamed("normal-order", func() {
 			shared.Playback.Lock()
@@ -113,14 +113,15 @@ func TestSenderBackpressureDoesNotDeadlock(t *testing.T) {
 		conn.PlayerStates = states
 		conn.Lyrics = []Line{{TimeMs: 0, Text: "line"}}
 
-		settings := NewSettingsBox(s, Settings{
+		er := newRtRuntime(s)
+		settings := NewSettingsBox(er, Settings{
 			Token:            "discord-token",
 			Source:           SourceSpotify,
 			SendTimeOffsetMs: 0,
 			AutoClear:        true,
 		})
-		shared := NewShared(s)
-		e := NewEngine(s, settings, shared, conn, 4)
+		shared := NewShared(er)
+		e := NewEngine(er, settings, shared, conn, 4)
 		e.SpawnPoller(1)
 
 		s.GoNamed("ticker", func() {
@@ -142,7 +143,7 @@ func TestSenderBackpressureDoesNotDeadlock(t *testing.T) {
 func TestLastfmLagNeverAppliesToWrongSongUnderConcurrentWrites(t *testing.T) {
 	for seed := int64(1); seed <= 200; seed++ {
 		s := rt.NewSched(seed)
-		shared := NewShared(s)
+		shared := NewShared(newRtRuntime(s))
 
 		lagA := uint64(4000)
 		lagB := uint64(1500)

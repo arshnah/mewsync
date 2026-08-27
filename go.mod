@@ -3,7 +3,7 @@ module mewsync
 go 1.27.0
 
 require (
-	github.com/arshnah/detsim v0.0.0
+	github.com/arshnah/detsim v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/godbus/dbus/v5 v5.2.2
@@ -31,5 +31,3 @@ require (
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/text v0.3.8 // indirect
 )
-
-replace github.com/arshnah/detsim => /home/arsh/Projects/detsim

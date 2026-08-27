@@ -12,8 +12,6 @@ import (
 	"time"
 
 	"mewsync"
-
-	"github.com/arshnah/detsim/rt"
 )
 
 func main() {
@@ -144,14 +142,14 @@ func buildEngine() (*mewsync.Engine, *mewsync.Shared, *mewsync.SettingsBox, stri
 		settings.AutoOffsetLimitMs = 2000
 	}
 
-	sched := rt.NewSched(time.Now().UnixNano())
-	box := mewsync.NewSettingsBox(sched, settings)
-	shared := mewsync.NewShared(sched)
+	runtime := mewsync.NewRealRuntime()
+	box := mewsync.NewSettingsBox(runtime, settings)
+	shared := mewsync.NewShared(runtime)
 	conn := mewsync.NewRealConnector(box, dir)
 	conn.SetShared(shared)
 
-	engine := mewsync.NewEngine(sched, box, shared, conn, 64)
-	engine.SpawnPoller(2000)
+	engine := mewsync.NewEngine(runtime, box, shared, conn, 64)
+	engine.SpawnPoller(2 * time.Second)
 
 	go func() {
 		last := time.Now()

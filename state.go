@@ -2,8 +2,6 @@ package mewsync
 
 import (
 	"strings"
-
-	"github.com/arshnah/detsim/rt"
 )
 
 // Line is one synced lyric line.
@@ -79,15 +77,15 @@ func normalizeSourceInput(s string) string {
 	return strings.ToLower(strings.TrimSpace(s))
 }
 
-// SettingsBox is a scheduler-bound RWMutex-guarded Settings, standing in for
-// mewsic's `RwLock<Settings>`.
+// SettingsBox is an RWMutex-guarded Settings, standing in for mewsic's
+// `RwLock<Settings>`.
 type SettingsBox struct {
-	mu *rt.RWMutex
+	mu rwLocker
 	v  Settings
 }
 
-func NewSettingsBox(s *rt.Sched, v Settings) *SettingsBox {
-	return &SettingsBox{mu: rt.NewRWMutex(s), v: v}
+func NewSettingsBox(rt engineRuntime, v Settings) *SettingsBox {
+	return &SettingsBox{mu: rt.NewRWMutex(), v: v}
 }
 
 func (b *SettingsBox) Get() Settings {
@@ -160,19 +158,19 @@ func (t *Tracker) SentContains(timeMs uint64) bool {
 // concurrently. Lock order is always Playback -> Tracker, matching mewsic's
 // documented invariant in src/engine.rs.
 type Shared struct {
-	Playback    *rt.Mutex
+	Playback    locker
 	playback    Playback
-	Tracker     *rt.Mutex
+	Tracker     locker
 	tracker     Tracker
-	LyricSource *rt.Mutex
+	LyricSource locker
 	lyricSource string
 }
 
-func NewShared(s *rt.Sched) *Shared {
+func NewShared(rt engineRuntime) *Shared {
 	return &Shared{
-		Playback:    rt.NewMutex(s),
-		Tracker:     rt.NewMutex(s),
-		LyricSource: rt.NewMutex(s),
+		Playback:    rt.NewMutex(),
+		Tracker:     rt.NewMutex(),
+		LyricSource: rt.NewMutex(),
 	}
 }
 

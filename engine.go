@@ -1,8 +1,6 @@
 package mewsync
 
-import (
-	"github.com/arshnah/detsim/rt"
-)
+import "time"
 
 // DefaultLastfmLagMs mirrors mewsic's DEFAULT_LASTFM_LAG_MS fallback.
 const DefaultLastfmLagMs = 3000
@@ -24,12 +22,12 @@ type statusMsg struct {
 // a poller goroutine and a tick() driven from the caller, all coordinating
 // through Shared under the scheduler's deterministic clock.
 type Engine struct {
-	sched     *rt.Sched
+	rt        engineRuntime
 	settings  *SettingsBox
 	shared    *Shared
 	conn      Connector
-	sendCh    *rt.Chan[statusMsg]
-	quit      *rt.Mutex
+	sendCh    statusChan
+	quit      locker
 	quitFlag  bool
 	SentCount int // observability hook for tests: successful PatchStatus calls
 }
@@ -37,17 +35,17 @@ type Engine struct {
 // NewEngine spawns the Discord-status sender goroutine, matching mewsic's
 // Engine::new. sendBufCap approximates Rust's unbounded mpsc::channel; pick
 // something generous enough that legitimate traffic never blocks on it.
-func NewEngine(s *rt.Sched, settings *SettingsBox, shared *Shared, conn Connector, sendBufCap int) *Engine {
+func NewEngine(rt engineRuntime, settings *SettingsBox, shared *Shared, conn Connector, sendBufCap int) *Engine {
 	e := &Engine{
-		sched:    s,
+		rt:       rt,
 		settings: settings,
 		shared:   shared,
 		conn:     conn,
-		sendCh:   rt.NewChan[statusMsg](s, sendBufCap),
-		quit:     rt.NewMutex(s),
+		sendCh:   rt.NewChan(sendBufCap),
+		quit:     rt.NewMutex(),
 	}
 
-	s.GoNamed("sender", func() {
+	rt.GoNamed("sender", func() {
 		for {
 			msg, ok := e.sendCh.RecvOK()
 			if !ok {
@@ -59,9 +57,9 @@ func NewEngine(s *rt.Sched, settings *SettingsBox, shared *Shared, conn Connecto
 			}
 			switch msg.kind {
 			case statusUpdate:
-				sentAt := s.Now()
+				sentAt := e.rt.Now()
 				if err := e.conn.PatchStatus(token, msg.text, msg.emoji); err == nil {
-					ms := uint64(s.Now() - sentAt)
+					ms := uint64(e.rt.Now().Sub(sentAt).Milliseconds())
 					limit := e.settings.Get().AutoOffsetLimitMs
 					if limit == 0 {
 						limit = 1
@@ -171,8 +169,8 @@ func (e *Engine) maybeSendLine() {
 // SpawnPoller mirrors Engine::spawn_poller: a background goroutine polling
 // every pollEveryMs, applying fetched state and refreshing lyrics on song
 // change. All I/O goes through Connector so tests can inject faults.
-func (e *Engine) SpawnPoller(pollEveryMs rt.VirtualTime) {
-	e.sched.GoNamed("poller", func() {
+func (e *Engine) SpawnPoller(pollEvery time.Duration) {
+	e.rt.GoNamed("poller", func() {
 		var spotifyToken string
 		haveToken := false
 
@@ -184,7 +182,7 @@ func (e *Engine) SpawnPoller(pollEveryMs rt.VirtualTime) {
 				return
 			}
 
-			e.sched.Sleep(pollEveryMs)
+			e.rt.Sleep(pollEvery)
 
 			settings := e.settings.Get()
 			switch settings.Source {
