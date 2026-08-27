@@ -1,0 +1,27 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: arshnah.mewsync
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: arshnah
+PackageName: mewsync
+License: MIT
+ShortDescription: Sync your Discord status with the song you're playing, line by line
+PackageUrl: https://github.com/arshnah/mewsync
+InstallerType: zip
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/arshnah/mewsync/releases/download/v0.1.0/mewsync_0.1.0_windows_amd64.zip
+    InstallerSha256: PLACEHOLDER_SHA256_WINDOWS_AMD64
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: mewsync.exe
+        PortableCommandAlias: mewsync
+  - Architecture: arm64
+    InstallerUrl: https://github.com/arshnah/mewsync/releases/download/v0.1.0/mewsync_0.1.0_windows_arm64.zip
+    InstallerSha256: PLACEHOLDER_SHA256_WINDOWS_ARM64
+    NestedInstallerType: portable
+    NestedInstallerFiles:
+      - RelativeFilePath: mewsync.exe
+        PortableCommandAlias: mewsync
+ManifestType: singleton
+ManifestVersion: 1.6.0

@@ -18,8 +18,19 @@ type FakeConnector struct {
 	playerCalls     int
 	Lyrics          []Line
 
+	// LyricsByName, when set, returns lyrics keyed by track name instead of
+	// the single Lyrics fallback, so tests can give different songs
+	// different lyric sets.
+	LyricsByName map[string][]Line
+
 	// DelayMs, when > 0, is applied before every network call returns.
 	DelayMs rt.VirtualTime
+
+	// LyricsDelayMs, when > 0, overrides DelayMs for FetchLyrics only.
+	LyricsDelayMs rt.VirtualTime
+
+	// PatchDelayMs, when > 0, overrides DelayMs for PatchStatus only.
+	PatchDelayMs rt.VirtualTime
 }
 
 type PlayerResult struct {
@@ -66,11 +77,22 @@ func (f *FakeConnector) FetchPlayer(spotifyToken string) (*PlayerState, error) {
 }
 
 func (f *FakeConnector) PatchStatus(discordToken, text, emoji string) error {
-	f.delay()
+	if f.PatchDelayMs > 0 {
+		f.sched.Sleep(f.PatchDelayMs)
+	} else {
+		f.delay()
+	}
 	return nil
 }
 
 func (f *FakeConnector) FetchLyrics(name, artist string) []Line {
-	f.delay()
+	if f.LyricsDelayMs > 0 {
+		f.sched.Sleep(f.LyricsDelayMs)
+	} else {
+		f.delay()
+	}
+	if f.LyricsByName != nil {
+		return f.LyricsByName[name]
+	}
 	return f.Lyrics
 }

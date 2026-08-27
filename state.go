@@ -1,6 +1,10 @@
 package mewsync
 
-import "github.com/arshnah/detsim/rt"
+import (
+	"strings"
+
+	"github.com/arshnah/detsim/rt"
+)
 
 // Line is one synced lyric line.
 type Line struct {
@@ -14,17 +18,65 @@ type Source int
 const (
 	SourceSpotify Source = iota
 	SourceLastfm
+	SourceMPRIS
 )
 
-// Settings is the subset of mewsic's config that engine logic reads.
 type Settings struct {
-	Token            string
-	Source           Source
-	EnableAutoOffset bool
-	SendTimeOffsetMs uint64
-	AutoClear        bool
-	// AutoOffsetLimitMs caps the learned auto-offset (mirrors `timing.autooffset`).
+	Token             string
+	Source            Source
+	EnableAutoOffset  bool
+	SendTimeOffsetMs  uint64
+	AutoClear         bool
 	AutoOffsetLimitMs uint64
+
+	LastfmAPIKey   string
+	LastfmUsername string
+
+	ViewTimestamp bool
+	ViewLabel     bool
+	ViewEmoji     string
+
+	AdvancedEnabled  bool
+	AdvancedEmoji    string
+	AdvancedTemplate string
+
+	AutoOffsetSamples int
+
+	AutoStart bool
+	Translit  bool
+
+	HistorySize int
+}
+
+// String returns the config/CLI spelling of a Source ("spotify" or "lastfm").
+func (s Source) String() string {
+	switch s {
+	case SourceLastfm:
+		return "lastfm"
+	case SourceMPRIS:
+		return "mpris"
+	default:
+		return "spotify"
+	}
+}
+
+// ParseSource parses a case-insensitive source name and a few common
+// aliases. The bool is false when input doesn't match a known source.
+func ParseSource(input string) (Source, bool) {
+	switch normalizeSourceInput(input) {
+	case "spotify", "sp", "discord", "dc":
+		return SourceSpotify, true
+	case "lastfm", "last.fm", "lf", "ytmusic", "ytm":
+		return SourceLastfm, true
+	case "mpris", "linux", "desktop":
+		return SourceMPRIS, true
+	default:
+		return SourceSpotify, false
+	}
+}
+
+func normalizeSourceInput(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
 }
 
 // SettingsBox is a scheduler-bound RWMutex-guarded Settings, standing in for

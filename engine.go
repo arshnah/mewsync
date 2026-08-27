@@ -95,15 +95,20 @@ func (e *Engine) Tick(deltaMs uint64) {
 	e.maybeSendLine()
 }
 
+// maybeSendLine never sends on sendCh while holding Playback or Tracker.
+// The sender goroutine needs Tracker to record latency before it loops back
+// to receive the next message, so a send made under the lock can deadlock
+// the moment the channel fills up under a slow PatchStatus.
 func (e *Engine) maybeSendLine() {
 	settings := e.settings.Get()
+	var pending []statusMsg
 
 	e.shared.WithBoth(func(pb *Playback, tr *Tracker) {
 		if pb.SongID != "" && pb.SongID != tr.LastSeenSong {
 			tr.LastSeenSong = pb.SongID
 			tr.SentLines = nil
 			if settings.AutoClear {
-				e.sendCh.Send(statusMsg{kind: statusClear})
+				pending = append(pending, statusMsg{kind: statusClear})
 			}
 		}
 
@@ -154,9 +159,13 @@ func (e *Engine) maybeSendLine() {
 			pb.CurrentLine = &line
 			tr.SentLines = append(tr.SentLines, line.TimeMs)
 			text, emoji := BuildStatus(settings, *pb, line)
-			e.sendCh.Send(statusMsg{kind: statusUpdate, text: text, emoji: emoji})
+			pending = append(pending, statusMsg{kind: statusUpdate, text: text, emoji: emoji})
 		}
 	})
+
+	for _, msg := range pending {
+		e.sendCh.Send(msg)
+	}
 }
 
 // SpawnPoller mirrors Engine::spawn_poller: a background goroutine polling
@@ -216,6 +225,17 @@ func (e *Engine) SpawnPoller(pollEveryMs rt.VirtualTime) {
 					continue
 				}
 				songChanged := e.applyState(state, nil)
+				e.syncLyrics(songChanged)
+			case SourceMPRIS:
+				state, err := e.conn.FetchPlayer("")
+				if err != nil {
+					continue
+				}
+				if state == nil {
+					e.shared.WithPlayback(func(pb *Playback) { pb.IsPlaying = false })
+					continue
+				}
+				songChanged := e.applyState(state, &state.ProgressMs)
 				e.syncLyrics(songChanged)
 			}
 		}
