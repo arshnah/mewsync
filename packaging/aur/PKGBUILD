@@ -1,6 +1,6 @@
 # Maintainer: arshnah <fromplutoaliens@gmail.com>
 pkgname=mewsync
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc="Sync your Discord status with the song you're playing, line by line"
 arch=('x86_64' 'aarch64')
@@ -9,7 +9,7 @@ license=('MIT')
 depends=('glibc')
 makedepends=('go')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/arshnah/mewsync/archive/refs/tags/v$pkgver.tar.gz")
-sha256sums=('PLACEHOLDER_SHA256')
+sha256sums=('7bc63c90d557a1950932b968fc6e1f872b138929ddcaa7de29ce3342cac07c56')
 
 build() {
   cd "$pkgname-$pkgver"

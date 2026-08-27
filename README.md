@@ -28,7 +28,7 @@ or build from source:
 go build -o mewsync ./cmd/mewsync
 ```
 
-Packaging skeletons for Homebrew, the AUR, and winget live under `packaging/`. They point at a GitHub releases URL pattern that isn't live yet, so the checksums are placeholders until there's an actual release.
+Packaging manifests for Homebrew, the AUR, and winget live under `packaging/`, pointed at the real [v0.1.1 release](https://github.com/arshnah/mewsync/releases/tag/v0.1.1) with real checksums. winget only lists an x64 build since that's the only Windows architecture the release workflow actually produces; there's no arm64 Windows binary to point at.
 
 ## Getting started
 
@@ -82,3 +82,5 @@ go test -race ./...
 ```
 
 The engine's concurrency logic (Engine, Shared, SettingsBox) is written against a small `engineRuntime` interface rather than directly against goroutines, channels and mutexes. Production uses `NewRealRuntime()`: real goroutines, real `sync.Mutex`, real channels, real wall-clock time. Tests use an adapter over [detsim](https://github.com/arshnah/detsim)'s `rt.Sched`, a deterministic scheduler, so the exact same Engine code that ships is what gets swept across seeded interleavings for deadlocks and races, not a separate copy written just for testing. `real_runtime_test.go` is a plain, detsim-free test that asserts the production runtime actually drives the poller and sender goroutines end to end, guarding against a real bug this project shipped once: wiring Engine to `rt.Sched` directly in production, where a scheduler's goroutines only run once something calls `Sched.Run`, which nothing in `main.go` did, so the poller and sender silently never executed in the first published build.
+
+The detsim sweep also caught a second real bug before it ever shipped: `maybeSendLine` used to hold both the `Playback` and `Tracker` locks across the call that sends a status update, and the sender goroutine needs the `Tracker` lock to record latency before it can loop back and drain the next message. Under a slow `PatchStatus` response and a full send buffer, `Tick`'s send blocked while still holding `Tracker`, the sender could never finish its bookkeeping, and the whole engine deadlocked permanently. `TestSenderBackpressureDoesNotDeadlock` reproduces the exact conditions that used to trigger it on every run; the fix was collecting pending sends while locked and only sending them after the lock is released.

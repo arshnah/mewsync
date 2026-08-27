@@ -1,6 +1,6 @@
 # yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
 PackageIdentifier: arshnah.mewsync
-PackageVersion: 0.1.0
+PackageVersion: 0.1.1
 PackageLocale: en-US
 Publisher: arshnah
 PackageName: mewsync
@@ -10,15 +10,8 @@ PackageUrl: https://github.com/arshnah/mewsync
 InstallerType: zip
 Installers:
   - Architecture: x64
-    InstallerUrl: https://github.com/arshnah/mewsync/releases/download/v0.1.0/mewsync_0.1.0_windows_amd64.zip
-    InstallerSha256: PLACEHOLDER_SHA256_WINDOWS_AMD64
-    NestedInstallerType: portable
-    NestedInstallerFiles:
-      - RelativeFilePath: mewsync.exe
-        PortableCommandAlias: mewsync
-  - Architecture: arm64
-    InstallerUrl: https://github.com/arshnah/mewsync/releases/download/v0.1.0/mewsync_0.1.0_windows_arm64.zip
-    InstallerSha256: PLACEHOLDER_SHA256_WINDOWS_ARM64
+    InstallerUrl: https://github.com/arshnah/mewsync/releases/download/v0.1.1/mewsync_0.1.1_windows_amd64.zip
+    InstallerSha256: EAEF88D3CBEDBD2CE839280572B1DB2D37F5EA69CFBCCE6D6AAA28BC9E3152DE
     NestedInstallerType: portable
     NestedInstallerFiles:
       - RelativeFilePath: mewsync.exe
