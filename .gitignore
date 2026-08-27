@@ -1,3 +1,4 @@
 /mewsync
 /mewsync.exe
 *.test
+dist/
