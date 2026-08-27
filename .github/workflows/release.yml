@@ -1,0 +1,63 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - run: go build ./...
+      - run: go vet ./...
+      - run: test -z "$(gofmt -l .)"
+      - run: go test ./...
+      - run: go test -race ./...
+
+      - name: build release binaries
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          LDFLAGS="-s -w -X mewsync.Version=${VERSION}"
+          mkdir -p dist/pkg
+
+          build() {
+            local goos=$1 goarch=$2
+            local out="mewsync"
+            [ "$goos" = "windows" ] && out="mewsync.exe"
+            echo "building $goos/$goarch"
+            GOOS="$goos" GOARCH="$goarch" CGO_ENABLED=0 go build -ldflags "$LDFLAGS" -o "dist/pkg/$out" ./cmd/mewsync
+            if [ "$goos" = "windows" ]; then
+              (cd dist/pkg && zip -q "../mewsync_${VERSION}_${goos}_${goarch}.zip" "$out")
+            else
+              tar -czf "dist/mewsync_${VERSION}_${goos}_${goarch}.tar.gz" -C dist/pkg "$out"
+            fi
+            rm -f "dist/pkg/$out"
+          }
+
+          build linux amd64
+          build linux arm64
+          build darwin amd64
+          build darwin arm64
+          build windows amd64
+
+          rmdir dist/pkg
+          (cd dist && sha256sum mewsync_${VERSION}_*.tar.gz mewsync_${VERSION}_*.zip > "mewsync_${VERSION}_checksums.txt")
+          ls -la dist/
+
+      - name: create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
